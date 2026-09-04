@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <title>Nieuwe Restwaarde Calculator</title>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col mt-3">
+                <!-- First Section - Restwaarde Laptop Calculator -->
+                <section>
+                    <h1><u>Restwaarde Laptop Berekenen</u></h1>                
+                    <form id="calcForm">
+                      <div class="form-group">
+                        <label for="laptopType">Selecteer Laptop Type::</label>
+                        <div class="row mt-2">
+                            <div class="col-sm-3">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="standardLaptop" name="laptopType" value="standard">
+                                    <label class="form-check-label" for="standardLaptop">Standaard Windows/Surface</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="powerLaptop" name="laptopType" value="power">
+                                    <label class="form-check-label" for="powerLaptop">Power Windows Laptop</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="macbook" name="laptopType" value="macbook">
+                                    <label class="form-check-label" for="macbook">Standaard MacBook</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" id="powerMacbook" name="laptopType" value="powermacbook">
+                                    <label class="form-check-label" for="powerMacbook">Power MacBook</label>
+                                </div>
+                            </div>
+                        </div>
+                      </div>
+              
+                      <div class="form-group">
+                        <label for="LaptopPurchasePrice">Aankoopprijs:</label>
+                        <input type="number" class="form-control" id="LaptopPurchasePrice" required>
+                      </div>
+              
+                      <div class="form-group">
+                        <label for="LaptopPurchaseDate">Aankoopdatum:</label>
+                        <input type="date" class="form-control" id="LaptopPurchaseDate" required>
+                      </div>
+              
+                      <div class="form-group">
+                        <label for="LaptopTerminationDate">Uit Dienst Datum:</label>
+                        <input type="date" class="form-control" id="LaptopTerminationDate" required>
+                      </div>
+                      <button type="button" class="btn btn-primary" onclick="calculateLaptopRemainingDebt()">Bereken Restwaarde Laptop</button>          
+                    </form>
+                    <!-- <div id="LaptopResult" class="mt-3"></div> -->
+                    <p id="LaptopResult" class="mt-3"></p>
+                    <button id="copyLaptopBtn" class="btn btn-sm btn-outline-secondary ml-2" style="display:none;" onclick="copyLaptopResult()">
+                        📋 Copy
+                    </button>
+
+                </section>
+            </div>            
+        </div>
+
+        <div class="row">
+
+            <div class="col">
+                <!-- Second Section - Phone Buyout Calculator -->
+                <section>
+                    <h1><u>Restwaarde Telefoon Berekenen</u></h1>
+                    <div class="form-group">
+                        <label for="PhoneBudget">Budget voor Telefoon:</label>
+                        <input type="number" class="form-control" id="PhoneBudget" placeholder="Enter budget">
+                    </div>
+                    <div class="form-group">
+                        <label for="PhonePurchaseDate">Aankoopdatum:</label>
+                        <input type="date" class="form-control" id="PhonePurchaseDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="PhoneTerminationDate">Uit Dienst Datum:</label>
+                        <input type="date" class="form-control" id="PhoneTerminationDate">
+                    </div>
+                    <button class="btn btn-primary" onclick="calculatePhoneRemainingDebt()">Bereken Restwaarde Telefoon Voucher  </button>
+                    <!--Result Area -->
+                    <!--
+                    <div id="phoneResult" class="result-area mt-2"></div>
+                    <div class="form-group">
+                        <label for="phoneBudgetResult"> Result: </label>
+                        <input type="number" class="form-control" id="phoneResult" placeholder="Result will be visible here.">
+                    </div>-->
+                    <p id="PhoneResult" class="mt-3"></p>
+                    <button id="copyPhoneBtn" class="btn btn-sm btn-outline-secondary ml-2" style="display:none;" onclick="copyPhoneResult()">
+                        📋 Copy
+                    </button>
+
+                </section>
+            </div>
+
+            <div class="col">
+                <!-- Third Section - Coolblue Buyout Calculator -->
+                <section>
+                    <h1><u>Restwaarde IT Hardware Berekenen</u></h1>
+                    <div class="form-group">
+                        <label for="CoolblueBudget">Budget voor IT Hardware:</label>
+                        <input type="number" class="form-control" id="CoolblueBudget" placeholder="Enter budget">
+                    </div>
+                    <div class="form-group">
+                        <label for="CoolbluePurchaseDate">Aankoopdatum:</label>
+                        <input type="date" class="form-control" id="CoolbluePurchaseDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="CoolblueTerminationDate">Uit Dienst Datum:</label>
+                        <input type="date" class="form-control" id="CoolblueTerminationDate">
+                    </div>
+                    <button class="btn btn-primary" onclick="calculateCoolblueRemainingDebt()">Bereken Restwaarde IT Hardware</button>
+                    <!--Result Area -->
+                    <!-- <div id="CoolblueResult" class="result-area mt-2"></div> -->
+                    <!-- <div class="form-group">
+                        <label for="Coolblue"> Result: </label>
+                        <input type="number" class="form-control" id="phoneBudget" placeholder="Result will be visible here.">
+                    </div>
+                    -->
+                    <p id="CoolblueResult" class="mt-3"></p>
+                    <button id="copyCoolblueBtn" class="btn btn-sm btn-outline-secondary ml-2" style="display:none;" onclick="copyCoolblueResult()">
+                        📋 Copy
+                    </button>
+                    
+                    
+                </section>                
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and Popper.js -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <script src="script.js"></script>
+</body>
+</html>
