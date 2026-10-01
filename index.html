@@ -134,9 +134,37 @@
                     <button id="copyCoolblueBtn" class="btn btn-sm btn-outline-secondary ml-2" style="display:none;" onclick="copyCoolblueResult()">
                         📋 Copy
                     </button>
-                    
-                    
-                </section>                
+
+
+                </section>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <!-- Fourth Section - Coolblue Excel Import -->
+                <section>
+                    <h1><u>Restwaarde IT Hardware - Import Excel Bestand</u></h1>
+                    <p class="text-muted small">
+                        Verwachte kolommen: <em>Bedrag</em>, <em>Aanschafdatum</em> en <em>Specificatie (artikel)</em>
+                        (optioneel: <em>In bezit van</em>).
+                    </p>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="CoolblueExcelFile">Excel bestand (.xlsx / .xls / .csv):</label>
+                            <input type="file" class="form-control-file" id="CoolblueExcelFile" accept=".xlsx,.xls,.csv" onchange="loadCoolblueExcel()">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label for="CoolblueBulkTerminationDate">Uit Dienst Datum:</label>
+                            <input type="date" class="form-control" id="CoolblueBulkTerminationDate" onchange="calculateCoolblueBulk()">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="calculateCoolblueBulk()">Bereken Restwaarde per Artikel</button>
+                    <div id="CoolblueBulkResult" class="mt-3"></div>
+                    <button id="copyCoolblueBulkBtn" class="btn btn-sm btn-outline-secondary" style="display:none;" onclick="copyCoolblueBulkResult()">
+                        📋 Copy (plakbaar in Excel)
+                    </button>
+                </section>
             </div>
         </div>
     </div>
@@ -145,6 +173,9 @@
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <!-- SheetJS for reading Excel files in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script src="script.js"></script>
 </body>

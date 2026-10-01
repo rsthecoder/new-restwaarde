@@ -360,5 +360,188 @@ function copyCoolblueResult() {
 }
 
 
+// ---------- Restwaarde IT Hardware - Excel import ----------
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+let coolblueBulkItems = [];
+
+function formatDateDMY(date) {
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${day}-${month}-${date.getUTCFullYear()}`;
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// Converts an Excel cell value (serial number, Date or text) to a UTC Date
+function parseExcelDate(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (value instanceof Date) return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
+  if (typeof value === 'number') return new Date(Date.UTC(1899, 11, 30) + Math.round(value) * MS_PER_DAY);
+  const text = String(value).trim();
+  let m = text.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); // DD-MM-YYYY
+  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+  m = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); // YYYY-MM-DD
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return null;
+}
+
+function parseAmount(value) {
+  if (typeof value === 'number') return value;
+  if (value === null || value === undefined) return NaN;
+  let text = String(value).replace(/[€\s]/g, '');
+  if (text.includes(',')) text = text.replace(/\./g, '').replace(',', '.'); // 1.234,56 -> 1234.56
+  return parseFloat(text);
+}
+
+// Finds the column index whose header starts with one of the given names
+function findColumn(headers, names) {
+  const normalized = headers.map(h => String(h || '').toLowerCase().trim());
+  for (const name of names) {
+    const idx = normalized.findIndex(h => h.startsWith(name));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+function loadCoolblueExcel() {
+  const fileInput = document.getElementById('CoolblueExcelFile');
+  const resultElement = document.getElementById('CoolblueBulkResult');
+  coolblueBulkItems = [];
+  document.getElementById('copyCoolblueBulkBtn').style.display = 'none';
+  if (!fileInput.files.length) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+      if (rows.length < 2) throw new Error('Het bestand bevat geen gegevens.');
+
+      const headers = rows[0];
+      const colAmount = findColumn(headers, ['bedrag', 'aankoopprijs', 'prijs', 'budget']);
+      const colDate = findColumn(headers, ['aanschafdatum', 'aankoopdatum', 'datum']);
+      const colArticle = findColumn(headers, ['specificatie', 'artikel', 'omschrijving', 'product']);
+      const colOwner = findColumn(headers, ['in bezit van', 'medewerker', 'naam']);
+      if (colAmount === -1 || colDate === -1) {
+        throw new Error('Kolom "Bedrag" en/of "Aanschafdatum" niet gevonden in de eerste rij.');
+      }
+
+      coolblueBulkItems = rows.slice(1)
+        .filter(row => row.some(cell => cell !== ''))
+        .map(row => ({
+          article: colArticle !== -1 ? row[colArticle] : '',
+          owner: colOwner !== -1 ? row[colOwner] : '',
+          price: parseAmount(row[colAmount]),
+          purchaseDate: parseExcelDate(row[colDate])
+        }));
+
+      if (document.getElementById('CoolblueBulkTerminationDate').value) {
+        calculateCoolblueBulk();
+      } else {
+        resultElement.innerHTML = `<div class="alert alert-info">${coolblueBulkItems.length} artikelen ingelezen. Vul de <strong>Uit Dienst Datum</strong> in en klik op "Bereken".</div>`;
+      }
+    } catch (err) {
+      resultElement.innerHTML = `<div class="alert alert-danger">Fout bij inlezen van Excel: ${escapeHtml(err.message)}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(fileInput.files[0]);
+}
+
+function calculateCoolblueBulk() {
+  const resultElement = document.getElementById('CoolblueBulkResult');
+  const copyBtn = document.getElementById('copyCoolblueBulkBtn');
+  const terminationValue = document.getElementById('CoolblueBulkTerminationDate').value;
+
+  if (!coolblueBulkItems.length) {
+    resultElement.innerHTML = '<div class="alert alert-warning">Upload eerst een Excel bestand.</div>';
+    copyBtn.style.display = 'none';
+    return;
+  }
+  if (!terminationValue) {
+    resultElement.innerHTML = '<div class="alert alert-warning">Vul de <strong>Uit Dienst Datum</strong> in.</div>';
+    copyBtn.style.display = 'none';
+    return;
+  }
+
+  const terminationDate = new Date(terminationValue); // YYYY-MM-DD -> UTC midnight
+  let total = 0;
+
+  const rowsHtml = coolblueBulkItems.map(item => {
+    if (isNaN(item.price) || !item.purchaseDate) {
+      item.result = null;
+      return `<tr class="table-warning"><td>${escapeHtml(item.article)}</td><td>${escapeHtml(item.owner)}</td>
+        <td colspan="6">Ongeldig bedrag of aanschafdatum - overgeslagen</td></tr>`;
+    }
+
+    // Same rules as calculateCoolblueRemainingDebt: 36 months, 30-day months
+    const monthsInUse = Math.max(0, Math.floor((terminationDate - item.purchaseDate) / (30 * MS_PER_DAY)));
+    const perMonthOff = item.price / 36;
+    const remainingMonths = monthsInUse < 36 ? 36 - monthsInUse : 0;
+    const residualValue = monthsInUse < 36 ? item.price - perMonthOff * monthsInUse : 0;
+    const purchasedAfterTermination = item.purchaseDate > terminationDate;
+
+    item.result = { monthsInUse, remainingMonths, perMonthOff, residualValue };
+    total += residualValue;
+
+    return `<tr${purchasedAfterTermination ? ' class="table-warning" title="Aanschafdatum ligt na de uit dienst datum"' : ''}>
+      <td>${escapeHtml(item.article)}</td>
+      <td>${escapeHtml(item.owner)}</td>
+      <td class="text-right">€${item.price.toFixed(2)}</td>
+      <td>${formatDateDMY(item.purchaseDate)}</td>
+      <td class="text-right">${monthsInUse}</td>
+      <td class="text-right">${remainingMonths}</td>
+      <td class="text-right">€${perMonthOff.toFixed(2)}</td>
+      <td class="text-right"><strong>€${residualValue.toFixed(2)}</strong></td>
+    </tr>`;
+  }).join('');
+
+  resultElement.innerHTML = `
+    <div class="btw-box">
+      <span class="btw-label">Totale restwaarde IT Hardware:</span>
+      <span class="btw-amount">€${total.toFixed(2)}</span>
+      <span class="btw-sub">${coolblueBulkItems.filter(i => i.result).length} artikelen · Uit dienst datum: ${formatDateDMY(terminationDate)}</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped bulk-table">
+        <thead class="thead-light">
+          <tr>
+            <th>Artikel</th><th>In bezit van</th><th class="text-right">Aankoopprijs</th><th>Aankoopdatum</th>
+            <th class="text-right">Gebruikt (mnd)</th><th class="text-right">Resterend (mnd)</th>
+            <th class="text-right">Per maand</th><th class="text-right">Restwaarde</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot>
+          <tr><th colspan="7" class="text-right">Totaal</th><th class="text-right">€${total.toFixed(2)}</th></tr>
+        </tfoot>
+      </table>
+    </div>`;
+  copyBtn.style.display = 'inline-block';
+}
+
+function copyCoolblueBulkResult() {
+  const header = ['Artikel', 'In bezit van', 'Aankoopprijs', 'Aankoopdatum', 'Gebruikt (mnd)', 'Resterend (mnd)', 'Per maand', 'Restwaarde'];
+  const lines = [header.join('\t')];
+  let total = 0;
+  coolblueBulkItems.filter(i => i.result).forEach(item => {
+    const r = item.result;
+    total += r.residualValue;
+    lines.push([item.article, item.owner, item.price.toFixed(2), formatDateDMY(item.purchaseDate),
+      r.monthsInUse, r.remainingMonths, r.perMonthOff.toFixed(2), r.residualValue.toFixed(2)].join('\t'));
+  });
+  lines.push(['Totaal', '', '', '', '', '', '', total.toFixed(2)].join('\t'));
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    alert("Berekening IT Hardware lijst gekopieerd!");
+  }).catch(err => {
+    console.error("Kopiëren mislukt: ", err);
+  });
+}
+
+
 
 

@@ -73,3 +73,12 @@ button {
     opacity: 0.85;
     font-weight: 400;
 }
+
+.bulk-table {
+    font-size: 14px;
+}
+
+.bulk-table td,
+.bulk-table th {
+    vertical-align: middle;
+}
